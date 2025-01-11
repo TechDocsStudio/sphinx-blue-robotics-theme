@@ -39,27 +39,14 @@
   aria-label="{{ lang.t('nav.title') }}"
   data-md-level="0"
 >
-
-  <!-- Site title -->
-  <label class="md-nav__title" for="__drawer">
-    <a href="{{ project_url }}">
-    {{ project }}
-    </a>
-  </label>
-
-  <!-- Repository information -->
-  {% if config.repo_url %}
-    <div class="md-nav__source">
-      {% include "partials/source.html" %}
-    </div>
-  {% endif %}
-
   <!-- Render item list -->
   <ul class="md-nav__list" data-md-scrollfix>
-    {% for nav_item in nav %}
-      {% set path = "__nav_" ~ loop.index %}
+    {% for custom_item in custom_nav %}
+      {% set path = "__custom_nav_" ~ loop.index %}
       {% set level = 1 %}
-      {% include "partials/nav-item.html" %}
+      {% with nav_item=custom_item %}
+        {% include "partials/nav-item.html" %}
+      {% endwith %}
     {% endfor %}
   </ul>
 </nav>
