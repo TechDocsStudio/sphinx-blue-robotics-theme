@@ -224,32 +224,6 @@ body[data-md-color-scheme="slate"] .md-header--shadow {
     #__drawer-right:checked ~ .md-drawer-right {
         right: 0;
     }
-    
-    .md-drawer__list {
-        list-style: none;
-        padding: 1rem;
-        margin: 0;
-    }
-    
-    .md-drawer__item {
-        margin-bottom: 1rem;
-    }
-    
-    .md-drawer__link {
-        text-decoration: none;
-        color: var(--theme-header-text-color);
-        font-size: 1.2rem;
-    }
-    
-    .md-drawer__submenu {
-        list-style: none;
-        padding-left: 1rem;
-        margin: 0.5rem 0;
-    }
-    
-    .md-drawer__submenu .md-drawer__item {
-        margin-bottom: 0.5rem;
-    }
 
     .md-overlay-right-drawer {
         background-color: rgba(0, 0, 0, 0.54);
