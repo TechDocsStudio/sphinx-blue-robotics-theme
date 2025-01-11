@@ -41,8 +41,8 @@
 >
   <!-- Render item list -->
   <ul class="md-nav__list" data-md-scrollfix>
-    {% for custom_item in custom_nav %}
-      {% set path = "__custom_nav_" ~ loop.index %}
+    {% for custom_item in right_drawer %}
+      {% set path = "__rightdrawer_" ~ loop.index %}
       {% set level = 1 %}
       {% with nav_item=custom_item %}
         {% include "partials/nav-item.html" %}

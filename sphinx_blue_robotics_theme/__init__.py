@@ -7,8 +7,8 @@ def update_context(app, pagename, templatename, context, doctree):
     file_meta = context.get("meta", None) or {}
     context["blue_robotics_theme_version"] = version
 
-    # Define custom_nav
-    context["custom_nav"] = [
+    # Define right_drawer
+    context["right_drawer"] = [
     {
         "title": "Docs",
         "url": "https://docs.bluerobotics.com",
