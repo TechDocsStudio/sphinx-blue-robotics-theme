@@ -27,26 +27,22 @@
 <!-- Determine class according to configuration -->
 {% set class = "md-nav md-nav--primary" %}
 {% if "navigation.tabs" in features %}
-  {% set class = class ~ " md-nav--lifted" %}
+{% set class = class ~ " md-nav--lifted" %}
 {% endif %}
 {% if "toc.integrate" in features %}
-  {% set class = class ~ " md-nav--integrated" %}
+{% set class = class ~ " md-nav--integrated" %}
 {% endif %}
 
 <!-- Main navigation -->
-<nav
-  class="{{ class }}"
-  aria-label="{{ lang.t('nav.title') }}"
-  data-md-level="0"
->
+<nav class="{{ class }}" aria-label="{{ lang.t('nav.title') }}" data-md-level="0">
   <!-- Render item list -->
   <ul class="md-nav__list" data-md-scrollfix>
     {% for custom_item in right_drawer %}
-      {% set path = "__rightdrawer_" ~ loop.index %}
-      {% set level = 1 %}
-      {% with nav_item=custom_item %}
-        {% include "partials/nav-item.html" %}
-      {% endwith %}
+    {% set path = "__rightdrawer_" ~ loop.index %}
+    {% set level = 1 %}
+    {% with nav_item=custom_item %}
+    {% include "partials/nav-item.html" %}
+    {% endwith %}
     {% endfor %}
   </ul>
 </nav>

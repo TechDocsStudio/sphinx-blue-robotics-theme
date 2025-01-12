@@ -24,10 +24,10 @@ def update_context(app, pagename, templatename, context, doctree):
                 "title": "BlueOS",
                 "url": "#",
                 "children": [
-                    {"title": "BlueOS Software", "url": "https://www.ardusub.com/", "children": []},
-                    {"title": "BlueOS Docs", "url": "https://blueos.cloud/docs/", "children": []},
-                    {"title": "BlueOS Community (GitHub)", "url": "https://github.com/bluerobotics/blueos-community", "children": []},
-                    {"title": "About BlueOS", "url": "https://bluerobotics.com/about/", "children": []},
+                    {"title": "BlueOS docs", "url": "https://blueos.cloud/docs/", "children": []},
+                    {"title": "Cockpit docs", "url": "https://blueos.cloud/cockpit/docs/", "children": []},
+                    {"title": "BlueOS Community (GitHub)", "url": "https://github.com/orgs/BlueOS-community/repositories", "children": []},
+                    {"title": "About BlueOS", "url": "hhttps://blueos.cloud/", "children": []},
                 ],
             },
             {
