@@ -182,7 +182,7 @@ body[data-md-color-scheme="slate"] .md-header--shadow {
 	min-height: 0;
 }
 
-.mega-menu-item[for=__drawer_right] {
+.mega-menu-item[for=__drawer-right] {
 	cursor: pointer;
 }
 
