@@ -3,58 +3,134 @@ name: "Publish documentation"
 on:
   push:
     branches:
-      - master
+      - ${{ github.event.repository.default_branch }}
   workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to build (leave empty to build all versions)'
+        required: false
+        type: string
+      multiversion:
+        description: 'Enable multiversion'
+        required: false
+        type: boolean
+        default: true
 
 jobs:
-  build:
+  # Load versions configuration from default branch
+  prepare:
     runs-on: ubuntu-latest
+    outputs:
+      versions: ${{ steps.set-matrix.outputs.versions }}
+      default_version: ${{ steps.set-matrix.outputs.default_version }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
-          persist-credentials: false
-          fetch-depth: 0
+          ref: ${{ github.event.repository.default_branch }}
+      
+      - id: set-matrix
+        run: |
+          # Read versions.json from default branch
+          content=$(cat versions.json)
+          echo "versions=$(echo "$content" | jq -c '.versions')" >> $GITHUB_OUTPUT
+          echo "default_version=$(echo "$content" | jq -r '.versions[] | select(.is_default == true) | .name')" >> $GITHUB_OUTPUT
+
+  # Build documentation
+  build:
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        version: ${{ fromJson(needs.prepare.outputs.versions) }}
+        filter: ${{ github.event.inputs.branch == '' && [true] || [github.event.inputs.branch == fromJson(version).name] }}
+    if: ${{ matrix.filter[0] }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          
+      - name: Save versions.json
+        run: |
+          # Save default branch's versions.json to use in all builds
+          cp versions.json /tmp/versions.json
+          
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.version.branch }}
+          clean: true  # Ensure clean checkout
+          
+      - name: Override versions.json
+        run: |
+          # Override versions.json with default branch's version
+          cp /tmp/versions.json versions.json
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
+      - name: Install Doxygen (optional)
+        run: sudo apt-get update && sudo apt-get install -y doxygen
+
       - name: Install dependencies
         run: make -C docs setupenv
 
       - name: Build docs
-        run: make -C docs dirhtml
-
-      - name: Prepare artifact
+        env:
+          SPHINX_VERSION: ${{ matrix.version.name }}
+          MULTIVERSION_ENABLED: ${{ github.event.inputs.multiversion != false }}
         run: |
-          tar \
-            --dereference --hard-dereference \
-            --directory docs/_build/dirhtml/ \
-            -cvf ${{ runner.temp }}/artifact.tar \
-            .
+          output_dir="${{ matrix.version.name }}"
+          # If multiversion is disabled and this is default branch, use root
+          if [[ "$MULTIVERSION_ENABLED" != "true" && "${{ matrix.version.branch }}" == "${{ github.event.repository.default_branch }}" ]]; then
+            output_dir=""
+          fi
+          make -C docs dirhtml BUILDDIR="_build/$output_dir"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4.6.0
+        uses: actions/upload-artifact@v4
         with:
-          name: github-pages
-          path: ${{ runner.temp }}/artifact.tar
-          retention-days: "1"
+          name: docs-${{ matrix.version.name }}
+          path: docs/_build/
+          retention-days: 1
 
-  release:
+  # Deploy to GitHub Pages
+  deploy:
+    needs: [prepare, build]
     runs-on: ubuntu-latest
-    needs: build
-
     permissions:
       pages: write
-      id-token: write 
-      contents: read 
-
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-
     steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: _site
+          pattern: docs-*
+          merge-multiple: true
+
+      - name: Create redirect
+        if: ${{ github.event.inputs.multiversion != false }}
+        env:
+          DEFAULT_VERSION: ${{ needs.prepare.outputs.default_version }}
+        run: |
+          cat > _site/index.html << EOF
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <meta http-equiv="refresh" content="0; url=./${DEFAULT_VERSION}/">
+            </head>
+          </html>
+          EOF
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
