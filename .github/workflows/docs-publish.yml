@@ -33,7 +33,7 @@ jobs:
       - id: set-matrix
         run: |
           # Read versions.json from default branch
-          content=$(cat versions.json)
+          content=$(cd docs && cat versions.json)
           echo "versions=$(echo "$content" | jq -c '.versions')" >> $GITHUB_OUTPUT
           echo "default_version=$(echo "$content" | jq -r '.versions[] | select(.is_default == true) | .name')" >> $GITHUB_OUTPUT
 
@@ -52,7 +52,7 @@ jobs:
       - name: Save versions.json
         run: |
           # Save default branch's versions.json to use in all builds
-          cp versions.json /tmp/versions.json
+          cp docs/versions.json /tmp/versions.json
           
       - uses: actions/checkout@v4
         with:
