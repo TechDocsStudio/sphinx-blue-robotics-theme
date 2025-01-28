@@ -170,8 +170,8 @@
       class="md-header__button md-logo" aria-label="Blue Robotics Sphinx Theme  documentation" data-md-component="logo">
       
 <!-- Logo -->
-<img src="../../_static/img/logo-dark.png/" alt="logo" class="show-slate" />
-<img src="../../_static/img/logo.png/" alt="logo" class="show-default" />
+<img src="../../_static/img/logo-dark.png" alt="logo" class="show-slate" />
+<img src="../../_static/img/logo.png" alt="logo" class="show-default" />
     </a>
 
     <!-- Button to open drawer -->
@@ -184,8 +184,8 @@
       class="mobile-logo" aria-label="Blue Robotics Sphinx Theme  documentation">
       
 <!-- Logo -->
-<img src="../../_static/img/logo-dark.png/" alt="logo" class="show-slate" />
-<img src="../../_static/img/logo.png/" alt="logo" class="show-default" />
+<img src="../../_static/img/logo-dark.png" alt="logo" class="show-slate" />
+<img src="../../_static/img/logo.png" alt="logo" class="show-default" />
     </a>
 
     <!-- Button to open search modal -->
@@ -1413,7 +1413,7 @@
 
   <!-- Site title -->
   <label class="md-nav__title" for="__drawer">
-    <a href="https://bluerobotics.github.io/sphinx-blue-robotics-theme/">
+    <a href="https://techdocsstudio.github.io/sphinx-blue-robotics-theme/">
       Blue Robotics Sphinx Theme
     </a>
   </label>
@@ -1995,7 +1995,7 @@
         
           <li class="md-nav__item">
   <a href="#python.mymodule.python.mymodule.MyClass.MyClass" class="md-nav__link">
-    <span aria-label="Python class" class="objinfo-icon objinfo-icon__data" title="Python class">C</span><span title="python.mymodule.MyClass (Python class) — This is a simple class to demonstrate autodoc." class="md-ellipsis">My<wbr>Class</span>
+    <span aria-label="Python class" class="objinfo-icon objinfo-icon__data" title="Python class">C</span><span title="python.mymodule.python.mymodule.MyClass.MyClass (Python class) — This is a simple class to demonstrate autodoc." class="md-ellipsis">My<wbr>Class</span>
   </a>
   
     <nav class="md-nav" aria-label="MyClass">
@@ -2003,7 +2003,7 @@
         
           <li class="md-nav__item">
   <a href="#python.mymodule.python.mymodule.MyClass.MyClass.my_method" class="md-nav__link">
-    <span aria-label="Python method" class="objinfo-icon objinfo-icon__procedure" title="Python method">M</span><span title="python.mymodule.MyClass.my_method (Python method) — This is a method that does something." class="md-ellipsis">my_<wbr>method</span>
+    <span aria-label="Python method" class="objinfo-icon objinfo-icon__procedure" title="Python method">M</span><span title="python.mymodule.python.mymodule.MyClass.MyClass.my_method (Python method) — This is a method that does something." class="md-ellipsis">my_<wbr>method</span>
   </a>
   
 </li>
@@ -2412,10 +2412,14 @@
 
 <script>
   function switchVersion(version) {
+    const themeSiteUrl = "https://techdocsstudio.github.io/sphinx-blue-robotics-theme/";
+    console.log(themeSiteUrl);
     const currentPath = window.location.pathname;
-    const pathSegments = currentPath.split('/');
-    pathSegments[1] = version;
-    const newPath = pathSegments.join('/');    
+    console.log(currentPath);
+    const relativePath = currentPath.replace(new URL(themeSiteUrl).pathname, '');
+    const pathSegments = relativePath.split('/');
+    pathSegments[0] = version;
+    const newPath = new URL(pathSegments.join('/'), themeSiteUrl).href;
     window.location.href = newPath;
   }
 </script>
@@ -2447,7 +2451,7 @@
         
           <li class="md-nav__item">
   <a href="#python.mymodule.python.mymodule.MyClass.MyClass" class="md-nav__link">
-    <span aria-label="Python class" class="objinfo-icon objinfo-icon__data" title="Python class">C</span><span title="python.mymodule.MyClass (Python class) — This is a simple class to demonstrate autodoc." class="md-ellipsis">My<wbr>Class</span>
+    <span aria-label="Python class" class="objinfo-icon objinfo-icon__data" title="Python class">C</span><span title="python.mymodule.python.mymodule.MyClass.MyClass (Python class) — This is a simple class to demonstrate autodoc." class="md-ellipsis">My<wbr>Class</span>
   </a>
   
     <nav class="md-nav" aria-label="MyClass">
@@ -2455,7 +2459,7 @@
         
           <li class="md-nav__item">
   <a href="#python.mymodule.python.mymodule.MyClass.MyClass.my_method" class="md-nav__link">
-    <span aria-label="Python method" class="objinfo-icon objinfo-icon__procedure" title="Python method">M</span><span title="python.mymodule.MyClass.my_method (Python method) — This is a method that does something." class="md-ellipsis">my_<wbr>method</span>
+    <span aria-label="Python method" class="objinfo-icon objinfo-icon__procedure" title="Python method">M</span><span title="python.mymodule.python.mymodule.MyClass.MyClass.my_method (Python method) — This is a method that does something." class="md-ellipsis">my_<wbr>method</span>
   </a>
   
 </li>
