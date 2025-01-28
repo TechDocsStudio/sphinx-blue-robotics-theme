@@ -44,8 +44,6 @@ jobs:
     strategy:
       matrix:
         version: ${{ fromJson(needs.prepare.outputs.versions) }}
-        filter: ${{ github.event.inputs.branch == '' && [true] || [github.event.inputs.branch == fromJson(version).name] }}
-    if: ${{ matrix.filter[0] }}
     steps:
       - uses: actions/checkout@v4
         with:
