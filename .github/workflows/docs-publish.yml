@@ -3,7 +3,7 @@ name: "Publish documentation"
 on:
   push:
     branches:
-      - master
+      - ${{ github.event.repository.default_branch }}
     paths:
       - docs/**
   workflow_dispatch:
@@ -12,57 +12,69 @@ on:
         description: 'Branch to build (leave empty to build all versions)'
         required: false
         type: string
-      multiversion:
-        description: 'Enable multiversion'
-        required: false
-        type: boolean
-        default: true
 
 jobs:
-  # Load versions configuration from default branch
+  # Load versions configuration from the default branch
   prepare:
     runs-on: ubuntu-latest
     outputs:
       versions: ${{ steps.set-matrix.outputs.versions }}
       default_version: ${{ steps.set-matrix.outputs.default_version }}
+      multiversion_enabled: ${{ steps.set-matrix.outputs.multiversion_enabled }}
+      event_branch: ${{ steps.set-matrix.outputs.event_branch }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.repository.default_branch }}
-      
+
       - id: set-matrix
         run: |
-          # Read versions.json from default branch
           content=$(cd docs && cat versions.json)
           echo "versions=$(echo "$content" | jq -c '.versions')" >> $GITHUB_OUTPUT
           echo "default_version=$(echo "$content" | jq -r '.versions[] | select(.is_default == true) | .name')" >> $GITHUB_OUTPUT
+          version_count=$(echo "$content" | jq '.versions | length')
+          if [[ $version_count -gt 1 ]]; then
+            echo "multiversion_enabled=true" >> $GITHUB_OUTPUT
+          else
+            echo "multiversion_enabled=false" >> $GITHUB_OUTPUT
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            echo "event_branch=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "event_branch=${{ github.event.inputs.branch }}" >> $GITHUB_OUTPUT
+          fi
 
-  # Build documentation
+      - name: Save versions.json to artifact
+        run: |
+          cp docs/versions.json /tmp/versions.json
+
+      - name: Upload versions.json artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: versions-json
+          path: /tmp/versions.json
+
+  # Build all docs
   build:
     needs: prepare
     runs-on: ubuntu-latest
     strategy:
       matrix:
         version: ${{ fromJson(needs.prepare.outputs.versions) }}
+      fail-fast: false
+    if: ${{ needs.prepare.outputs.event_branch == '' }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.repository.default_branch }}
-          
-      - name: Save versions.json
-        run: |
-          # Save default branch's versions.json to use in all builds
-          cp docs/versions.json /tmp/versions.json
-          
-      - uses: actions/checkout@v4
-        with:
           ref: ${{ matrix.version.branch }}
-          clean: true  # Ensure clean checkout
-          
+
+      - name: Download versions.json artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: versions-json
+          path: /tmp/versions.json
+
       - name: Override versions.json
-        run: |
-          # Override versions.json with default branch's version
-          cp /tmp/versions.json versions.json
+        run: cp /tmp/versions.json docs/versions.json
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -77,43 +89,105 @@ jobs:
 
       - name: Build docs
         env:
-          SPHINX_VERSION: ${{ matrix.version.name }}
-          MULTIVERSION_ENABLED: ${{ github.event.inputs.multiversion != false }}
+          MULTIVERSION_CURRENT_BRANCH: ${{ matrix.version.name }}
+          MULTIVERSION_ENABLED: ${{ needs.prepare.outputs.multiversion_enabled }}
         run: |
           output_dir="${{ matrix.version.name }}"
-          # If multiversion is disabled and this is default branch, use root
-          if [[ "$MULTIVERSION_ENABLED" != "true" && "${{ matrix.version.branch }}" == "${{ github.event.repository.default_branch }}" ]]; then
-            output_dir=""
-          fi
           make -C docs dirhtml BUILDDIR="_build/$output_dir"
 
-      - name: Upload artifact
+      - name: Copy docs to _site
+        run: |
+          mkdir -p _site/${{ matrix.version.name }}
+          cp -r docs/_build/${{ matrix.version.name }}/* _site/${{ matrix.version.name }}
+
+      - name: Save build output to artifact
+        run: |
+          mkdir -p /tmp/build-output
+          cp -r docs/_build/${{ matrix.version.name }}/* /tmp/build-output/
+
+      - name: Upload build output artifact
         uses: actions/upload-artifact@v4
         with:
-          name: docs-${{ matrix.version.name }}
-          path: docs/_build/
-          retention-days: 1
+          name: build-output-${{ matrix.version.name }}
+          path: /tmp/build-output
 
-  # Deploy to GitHub Pages
-  deploy:
-    needs: [prepare, build]
+  # Build a specific branch
+  build-single:
     runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    if: ${{ needs.prepare.outputs.event_branch != '' }}
     steps:
-      - name: Download all artifacts
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Doxygen (optional)
+        run: sudo apt-get update && sudo apt-get install -y doxygen
+
+      - name: Install dependencies
+        run: make -C docs setupenv
+
+      - name: Copy docs to _site
+        run: |
+          mkdir -p _site/${{ github.event.inputs.branch }}
+          cp -r docs/_build/${{ github.event.inputs.branch }}/* _site/${{ github.event.inputs.branch }}
+
+      - name: Save build output to artifact
+        run: |
+          mkdir -p /tmp/build-output
+          cp -r docs/_build/${{ github.event.inputs.branch }}/* /tmp/build-output/
+
+      - name: Upload build output artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output-${{ github.event.inputs.branch }}
+          path: /tmp/build-output
+
+  # Deploy to gh-pages branch
+  deploy:
+    needs: [build, build-single]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout gh-pages branch
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+
+      - name: Download versions.json artifact
         uses: actions/download-artifact@v4
         with:
-          path: _site
-          pattern: docs-*
-          merge-multiple: true
+          name: versions-json
+          path: /tmp/versions.json
+
+      - name: Download all build output artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output-${{ needs.prepare.outputs.event_branch }}
+          path: /tmp/build-output
+
+      - name: Check if only one version was built
+        id: check-version
+        run: |
+          version_count=$(echo "${{ fromJson(needs.prepare.outputs.versions) }}" | jq '. | length')
+          echo "version_count=$version_count" >> $GITHUB_ENV
+
+      - name: Replace folder for one version if only one version built
+        if: ${{ env.version_count == '1' }}
+        run: |
+          rm -rf _site/${{ needs.prepare.outputs.default_version }}
+          cp -r /tmp/build-output/* _site/${{ needs.prepare.outputs.default_version }}
+
+      - name: Clear and recreate _site folder if multiple versions were built
+        if: ${{ env.version_count != '1' }}
+        run: |
+          rm -rf _site/*
+          cp -r /tmp/build-output/* _site/
 
       - name: Create redirect
-        if: ${{ github.event.inputs.multiversion != false }}
         env:
           DEFAULT_VERSION: ${{ needs.prepare.outputs.default_version }}
         run: |
@@ -124,13 +198,18 @@ jobs:
               <meta http-equiv="refresh" content="0; url=./${DEFAULT_VERSION}/">
             </head>
           </html>
-          EOF
 
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: _site
+      - name: Create .nojekyll
+        run: touch _site/.nojekyll
 
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Move _site to gh-pages
+        run: |
+          cp -r _site/* .
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add .
+          git commit -m "Update documentation"
+          git push origin gh-pages
